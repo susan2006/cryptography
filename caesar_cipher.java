@@ -1,31 +1,35 @@
 import java.util.Scanner;
-
-public class caesar_cipher {
-    
-    public static StringBuffer caesar_encrypt(String str, int key){
-        StringBuffer sb = new StringBuffer();
-
-        for(int i = 0;i < str.length();++i){
-            char c = (char)(((int)str.charAt(i) + key - 97) % 26 + 97);
-            sb.append(c);
+public class CaesarCipher {
+    public static String encrypt(String text, int shift) {
+        StringBuilder result = new StringBuilder();
+        shift = (shift % 26 + 26) % 26;
+        for (int i = 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+            if (Character.isLetter(ch)) {
+                char base = Character.isUpperCase(ch) ? 'A' : 'a';
+                char shifted = (char) ((ch - base + shift) % 26 + base);
+                result.append(shifted);
+            } else {
+                result.append(ch);
+            }
         }
-
-        return sb;
+        return result.toString();
     }
-    public static void main(String[] args){
-        
-        Scanner s = new Scanner(System.in);
-
-        System.out.print("Enter the plain text in the lowercase: ");
-        String str = s.nextLine();
-
-        System.out.print("Enter the key: ");
-        int key = s.nextInt();
-
-        System.out.println("Original String: " + str);
-        System.out.println("Key: " + key);
-        System.out.println("Encrypted cipher: " + caesar_encrypt(str, key));
-
-        s.close();
+    public static String decrypt(String text, int shift) {
+        return encrypt(text, 26 - shift);
+    }
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Enter message: ");
+        String message = scanner.nextLine();
+        System.out.print("Enter shift key (integer): ");
+        int shift = scanner.nextInt();
+        String encrypted = encrypt(message, shift);
+        String decrypted = decrypt(encrypted, shift);
+        System.out.println("Original:  " + message);
+        System.out.println("Encrypted: " + encrypted);
+        System.out.println("Decrypted: " + decrypted);
+        scanner.close();
     }
 }
+
