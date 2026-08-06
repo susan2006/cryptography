@@ -1,5 +1,147 @@
 import java.util.*;
 
+public class PlayfairCipher {
+
+    private static char[][] matrix = new char[5][5];
+    private static Map<Character, int[]> posMap = new HashMap<>();
+
+    // 1. Build the 5x5 Key Matrix
+    public static void buildMatrix(String key) {
+        matrix = new char[5][5];
+        posMap.clear();
+
+        boolean[] used = new boolean[26];
+        key = key.toLowerCase().replaceAll("j", "i").replaceAll("[^a-z]", "");
+
+        int r = 0, c = 0;
+
+        // Insert key characters
+        for (char ch : key.toCharArray()) {
+            if (!used[ch - 'a']) {
+                matrix[r][c] = ch;
+                posMap.put(ch, new int[]{r, c});
+                used[ch - 'a'] = true;
+                c++;
+                if (c == 5) { c = 0; r++; }
+            }
+        }
+
+        // Insert remaining alphabet letters (excluding 'j')
+        for (char ch = 'a'; ch <= 'z'; ch++) {
+            if (ch == 'j') continue;
+            if (!used[ch - 'a']) {
+                matrix[r][c] = ch;
+                posMap.put(ch, new int[]{r, c});
+                used[ch - 'a'] = true;
+                c++;
+                if (c == 5) { c = 0; r++; }
+            }
+        }
+    }
+
+    // 2. Preprocess Plaintext into Digraphs (Pairs)
+    public static String prepareText(String text) {
+        text = text.toLowerCase().replaceAll("j", "i").replaceAll("[^a-z]", "");
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < text.length(); i++) {
+            char current = text.charAt(i);
+            sb.append(current);
+
+            // Insert filler 'x' if adjacent pair letters are identical
+            if (i + 1 < text.length() && current == text.charAt(i + 1) && sb.length() % 2 != 0) {
+                sb.append('x');
+            }
+        }
+
+        // Pad with 'x' if odd length
+        if (sb.length() % 2 != 0) {
+            sb.append('x');
+        }
+
+        return sb.toString();
+    }
+
+    // 3. Encrypt Digraph Pairs
+    public static String encrypt(String text) {
+        return transform(text, 1);
+    }
+
+    // 4. Decrypt Digraph Pairs
+    public static String decrypt(String text) {
+        return transform(text, 4); // Shift of -1 mod 5 is equivalent to +4 mod 5
+    }
+
+    // Unified Transformation Logic
+    private static String transform(String text, int shift) {
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < text.length(); i += 2) {
+            char a = text.charAt(i);
+            char b = text.charAt(i + 1);
+
+            int[] p1 = posMap.get(a);
+            int[] p2 = posMap.get(b);
+
+            int r1 = p1[0], c1 = p1[1];
+            int r2 = p2[0], c2 = p2[1];
+
+            if (r1 == r2) {
+                // Same row -> Shift columns
+                result.append(matrix[r1][(c1 + shift) % 5]);
+                result.append(matrix[r2][(c2 + shift) % 5]);
+            } else if (c1 == c2) {
+                // Same column -> Shift rows
+                result.append(matrix[(r1 + shift) % 5][c1]);
+                result.append(matrix[(r2 + shift) % 5][c2]);
+            } else {
+                // Rectangle -> Swap columns
+                result.append(matrix[r1][c2]);
+                result.append(matrix[r2][c1]);
+            }
+        }
+
+        return result.toString();
+    }
+
+    // Display 5x5 Matrix
+    public static void printMatrix() {
+        System.out.println("\nPlayfair 5x5 Matrix:");
+        for (int i = 0; i < 5; i++) {
+            for (int j = 0; j < 5; j++) {
+                System.out.print(Character.toUpperCase(matrix[i][j]) + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        System.out.print("Enter plaintext: ");
+        String text = sc.nextLine();
+
+        System.out.print("Enter secret key: ");
+        String key = sc.nextLine();
+
+        buildMatrix(key);
+        printMatrix();
+
+        String preparedText = prepareText(text);
+        System.out.println("\nPrepared Digraph Text : " + preparedText);
+
+        String cipherText = encrypt(preparedText);
+        System.out.println("Encrypted Ciphertext  : " + cipherText.toUpperCase());
+
+        String decryptedText = decrypt(cipherText);
+        System.out.println("Decrypted Text        : " + decryptedText);
+
+        sc.close();
+    }
+}
+/*
+import java.util.*;
+
 public class Playfar {
 
     static char[][] matrix = new char[5][5];
@@ -352,4 +494,4 @@ public class PlayfairCipher {
 	}
 	}
 
-
+*/
