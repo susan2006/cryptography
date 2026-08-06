@@ -1,6 +1,110 @@
 import java.util.*;
 
 public class ColumnarTranspositionCipher {
+
+    // Computes alphabetical column order indices from key string
+    // Handles duplicate letters correctly (e.g., "SECRET" -> [4, 1, 0, 3, 2, 5])
+    private static Integer[] getColumnOrder(String key) {
+        int n = key.length();
+        Integer[] order = new Integer[n];
+        for (int i = 0; i < n; i++) order[i] = i;
+
+        Arrays.sort(order, (a, b) -> Character.compare(key.charAt(a), key.charAt(b)));
+        return order;
+    }
+
+    // Encryption
+    public static String encryptMessage(String msg, String key) {
+        int col = key.length();
+        int row = (int) Math.ceil((double) msg.length() / col);
+
+        char[][] matrix = new char[row][col];
+        int k = 0;
+
+        // Fill matrix row-wise with message and '_' padding
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                if (k < msg.length()) {
+                    matrix[i][j] = msg.charAt(k++);
+                } else {
+                    matrix[i][j] = '_';
+                }
+            }
+        }
+
+        Integer[] colOrder = getColumnOrder(key);
+        StringBuilder cipher = new StringBuilder();
+
+        // Read matrix column-wise in alphabetical order of key
+        for (int c : colOrder) {
+            for (int r = 0; r < row; r++) {
+                cipher.append(matrix[r][c]);
+            }
+        }
+
+        return cipher.toString();
+    }
+
+    // Decryption
+    public static String decryptMessage(String cipher, String key) {
+        int col = key.length();
+        int row = (int) Math.ceil((double) cipher.length() / col);
+
+        char[][] matrix = new char[row][col];
+        Integer[] colOrder = getColumnOrder(key);
+
+        int k = 0;
+
+        // Fill matrix column-wise based on sorted key order
+        for (int c : colOrder) {
+            for (int r = 0; r < row; r++) {
+                if (k < cipher.length()) {
+                    matrix[r][c] = cipher.charAt(k++);
+                }
+            }
+        }
+
+        // Read matrix row-wise to reconstruct original message
+        StringBuilder msg = new StringBuilder();
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                if (matrix[i][j] != '_') {
+                    msg.append(matrix[i][j]);
+                }
+            }
+        }
+
+        return msg.toString();
+    }
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Enter message text: ");
+        String msg = scanner.nextLine();
+
+        System.out.print("Enter secret key word: ");
+        String key = scanner.nextLine().toUpperCase().replaceAll("[^A-Z]", "");
+
+        if (key.isEmpty()) {
+            System.out.println("Error: Key must contain at least one letter.");
+            scanner.close();
+            return;
+        }
+
+        String encrypted = encryptMessage(msg, key);
+        String decrypted = decryptMessage(encrypted, key);
+
+        System.out.println("\n--- RESULTS ---");
+        System.out.println("Encrypted Message : " + encrypted);
+        System.out.println("Decrypted Message : " + decrypted);
+
+        scanner.close();
+    }
+}
+/*import java.util.*;
+
+public class ColumnarTranspositionCipher {
     // Key for Columnar Transposition
     static final String key = "HACK";
     static Map<Character, Integer> keyMap = new HashMap<>();
@@ -115,3 +219,4 @@ public class ColumnarTranspositionCipher {
         System.out.println("Decrypted Message: " + decryptMessage(cipher));
     }
 }
+*/
