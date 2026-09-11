@@ -1,72 +1,77 @@
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.DESKeySpec;
 import java.io.*;
 import java.net.*;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
+import java.util.Scanner;
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 
-public class DESServer {
+public class desserver {
 
-    // Converts key string to a valid DES SecretKey object
-    private static SecretKey getSecretKey(String secretKeyStr) throws Exception {
-        DESKeySpec keySpec = new DESKeySpec(secretKeyStr.getBytes(StandardCharsets.UTF_8));
-        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
-        return keyFactory.generateSecret(keySpec);
-    }
-
-    // Decrypts Base64 encoded ciphertext
-    public static String decrypt(String cipherText, String secretKey) throws Exception {
-        SecretKey key = getSecretKey(secretKey);
-        Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
-        cipher.init(Cipher.DECRYPT_MODE, key);
-
-        byte[] decodedBytes = Base64.getDecoder().decode(cipherText);
-        byte[] decryptedBytes = cipher.doFinal(decodedBytes);
-        return new String(decryptedBytes, StandardCharsets.UTF_8);
-    }
-
+    static final int PORT = 5000;
     public static void main(String[] args) {
-        int port = 5000;
 
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("==========================================");
-            System.out.println("  DES DECRYPTION SERVER STARTED (PORT " + port + ")");
-            System.out.println("==========================================");
-            System.out.println("Waiting for client connection...\n");
+        try {
+            ServerSocket server = new ServerSocket(PORT);
+            System.out.println("Server Started...");
+            System.out.println("Waiting for Client...");
+            Socket socket = server.accept();
+            System.out.println("Client Connected...\n");
+            DataInputStream in = new DataInputStream(socket.getInputStream());
 
-            try (Socket socket = serverSocket.accept();
-                 DataInputStream in = new DataInputStream(socket.getInputStream());
-                 DataOutputStream out = new DataOutputStream(socket.getOutputStream())) {
+            // Receive Key
+            String key = in.readUTF();
 
-                System.out.println("[+] Client connected!");
+            // Receive Cipher Bytes
+            int length = in.readInt();
+            byte[] cipherBytes = new byte[length];
+            in.readFully(cipherBytes);
 
-                // 1. Receive Base64 Ciphertext and Secret Key from Client
-                String ciphertext = in.readUTF();
-                String key = in.readUTF();
+            System.out.println("===== DATA RECEIVED =====");
+            System.out.println("Key         : " + key);
+            System.out.println("Cipher Bytes: " + bytesToHex(cipherBytes));
+            // =========================================================
+            // PAUSE HERE: Wait for user to press ENTER before decrypting
+            // =========================================================
+            System.out.print("\n>>> Press [ENTER] to perform DES decryption... ");
+            Scanner console = new Scanner(System.in);
+            console.nextLine();
 
-                System.out.println("\n[Received Data from Client]");
-                System.out.println("--> Received Ciphertext (Base64) : " + ciphertext);
-                System.out.println("--> Received Secret Key          : " + key);
+            // Decrypt using DES Algorithm
+            String plainText = decryptDES(cipherBytes, key);
 
-                // 2. Perform Server-side DES Decryption
-                String decryptedText = decrypt(ciphertext, key);
+            System.out.println("Original Text : " + plainText);
 
-                System.out.println("\n[Server Decryption Result]");
-                System.out.println("--> Decrypted Plaintext          : " + decryptedText);
+            // Clean up resources
+            console.close();
+            in.close();
+            socket.close();
+            server.close();
 
-                // 3. Send Response Back to Client
-                out.writeUTF("SUCCESS: Server decrypted message -> " + decryptedText);
-
-            } catch (EOFException e) {
-                System.out.println("Client disconnected.");
-            } catch (Exception e) {
-                System.err.println("Decryption Error on Server: " + e.getMessage());
-            }
-
-        } catch (IOException e) {
-            System.err.println("Server Error: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Server Error: " + e.getMessage());
         }
+
+    }
+
+    //----------------------------------------------------
+    // DES Decryption (NoPadding, raw bytes)
+    //----------------------------------------------------
+    static String decryptDES(byte[] cipherBytes, String key) throws Exception {
+        SecretKeySpec keySpec = new SecretKeySpec(key.getBytes("UTF-8"), "DES");
+        Cipher cipher = Cipher.getInstance("DES/ECB/NoPadding");
+        cipher.init(Cipher.DECRYPT_MODE, keySpec);
+
+        byte[] decryptedBytes = cipher.doFinal(cipherBytes);
+        return new String(decryptedBytes, "UTF-8");
+    }
+
+    //----------------------------------------------------
+    // Helper: Convert bytes to hex string for display
+    //----------------------------------------------------
+    static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02X ", b));
+        }
+        return sb.toString();
     }
 }
